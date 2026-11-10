@@ -11,7 +11,7 @@ jobs:
       - uses: ClarrieO5/skillpath-guard@main
         with: { path: skills/good-skill }
   broken-fails:
-    name: broken-fails (job must be green: the Action step must fail)
+    name: broken-fails (green means the Action step failed as expected)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
