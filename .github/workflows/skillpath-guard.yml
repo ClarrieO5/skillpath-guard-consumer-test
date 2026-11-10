@@ -56,17 +56,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: summary default (on) writes the job summary
+      # GitHub gives every step its own GITHUB_STEP_SUMMARY file, so a later step cannot read what the
+      # Action wrote. Point the variable at a shared file on the Action steps to be able to read it back.
+      - name: summary default (on) writes a report
         id: on
         continue-on-error: true
         uses: ClarrieO5/skillpath-guard@main
+        env:
+          GITHUB_STEP_SUMMARY: ${{ runner.temp }}/summary-on.md
         with: { path: broken }
-      - run: test -s "$GITHUB_STEP_SUMMARY" && grep -q MISSING_REFERENCE "$GITHUB_STEP_SUMMARY"
-      - name: record size, then run with summary off
-        run: wc -c < "$GITHUB_STEP_SUMMARY" > "$RUNNER_TEMP/size"
+      - name: summary on produced the report
+        run: |
+          ls -l "$RUNNER_TEMP"/summary-*.md || true
+          test -s "$RUNNER_TEMP/summary-on.md"
+          grep -q MISSING_REFERENCE "$RUNNER_TEMP/summary-on.md"
+          cat "$RUNNER_TEMP/summary-on.md"
       - id: off
+        name: summary off
         continue-on-error: true
         uses: ClarrieO5/skillpath-guard@main
+        env:
+          GITHUB_STEP_SUMMARY: ${{ runner.temp }}/summary-off.md
         with: { path: broken, summary: 'false' }
-      - name: summary off adds nothing
-        run: test "$(wc -c < "$GITHUB_STEP_SUMMARY")" = "$(cat "$RUNNER_TEMP/size")"
+      - name: summary off wrote nothing
+        run: |
+          test "${{ steps.off.outcome }}" = "failure"
+          test ! -s "$RUNNER_TEMP/summary-off.md"
